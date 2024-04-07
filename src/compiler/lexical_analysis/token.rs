@@ -34,17 +34,12 @@ impl<'a> Token<'a> {
         (&[("==", Token::DoubleEq), ("=", Token::Eq), ("||", Token::DoubleBar)][..]).into()
     }
 
-    pub fn unwrap_ident(self) -> Option<&'a str> {
-        match self {
-            Token::Identifier(ident) => Some(ident),
-            _ => None
-        }
-    }
-
-    pub fn unwrap_number(self) -> Option<&'a str> {
-        match self {
-            Token::Number(ident) => Some(ident),
-            _ => None
-        }
+    pub fn inner_string(self) -> Option<&'a str> {
+        Some(match self {
+            Token::Identifier(ident) => ident,
+            Token::Number(number) => number,
+            Token::String(string) => string,
+            _ => return None
+        })
     }
 }

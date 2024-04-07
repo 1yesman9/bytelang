@@ -1,9 +1,7 @@
 use std::iter::IntoIterator;
 
-use super::lexical_analysis::Token;
-
 use crate::util::peek::Peek;
-
+use super::lexical_analysis::Token;
 use super::syntax_analysis::ast::{Program, Statement, Assignment};
 
 //mod
@@ -15,15 +13,12 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     fn expect(&mut self, target: Token<'a>) -> Result<Token<'a>, String> {
-        let exists = self.iter.peek(0)
-            .is_some_and(|token| std::mem::discriminant(token) == std::mem::discriminant(&target));
+        let lookahead = self.iter.peek(0).ok_or_else(|| format!("expected {:?}, found EOF", target))?;
 
-        if exists {
-            //report if there's no token left,
-            //report if we got the wrong thing
-            self.iter.next().ok_or(format!("expected {:?}", target))
+        if std::mem::discriminant(lookahead) == std::mem::discriminant(&target) {
+            Ok(self.iter.next().unwrap())
         } else {
-            Err(format!("expected {:?}", target))
+            Err(format!("expected {:?}, found {:?}", target, lookahead))
         }
     }
 
@@ -36,16 +31,19 @@ impl<'a> Parser<'a> {
     pub fn assignment(&mut self) -> Result<Option<Assignment<'a>>, String> {
         //if we don't encounter local immediately, no assignment is found
         if let Err(_) = self.expect(Token::Local) { return Ok(None) }
+
+        //everything after is required
         let name = self.expect(Token::Identifier(""))?;
         self.expect(Token::Eq)?;
         let number = self.expect(Token::Number(""))?;
-        Ok(Some(Assignment::new(name.unwrap_ident().unwrap(), number.unwrap_number().unwrap())))
+        Ok(Some(Assignment::new(name.inner_string().unwrap(), number.inner_string().unwrap())))
     }
 
 
     pub fn program(&mut self) -> Result<Option<Program<'a>>, String> {
         let mut statements = Vec::new();
 
+        //this format is easy to generalize with macros
         loop {
             //match this kind of statement
             if let Some(assignment) = self.assignment()? {

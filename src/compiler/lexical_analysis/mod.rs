@@ -1,8 +1,6 @@
 /*
     Lexer
-
-    TODO: Make generic lex_rule trait, which we can apply depending on the current lookahead
-    TODO: Make trie out of token symbols, for efficient symbol matching
+    TODO: Error Handling
 */
 
 #![allow(dead_code, unused_imports, unused_variables, unused_mut)]
@@ -47,9 +45,7 @@ impl<'a> Lexer<'a> {
 
     fn consume_while(&mut self, predicate: impl Fn(char) -> bool) {
         while let Some(c) = self.peek(0) {
-            if !predicate(c) {
-                break;
-            }
+            if !predicate(c) { break; }
             self.next();
         }
     }
@@ -73,10 +69,12 @@ impl<'a> Lexer<'a> {
             let mut node = &symbol_trie;
 
             //identifier
-            let token = if chr.is_alphabetic() {
+            let token = if chr.is_alphabetic()  {
+                //TODO: Support underscores
                 let identifier = self.consume_while_tok(|c| c.is_alphabetic());
                 Token::get_keyword(identifier).unwrap_or(Token::Identifier(identifier))
             } else if chr.is_numeric() {
+                //TODO: Handle decimals
                 Token::Number(self.consume_while_tok(|c| c.is_numeric()))
             } else if chr == '"' || chr == '\'' {
                 self.consume_while(|c| c != chr);
@@ -85,10 +83,11 @@ impl<'a> Lexer<'a> {
                 if let Some(_) = self.next() {
                     Token::String(self.consume_buffer())
                 } else {
+                    //TODO: This is an incomplete string ERROR
                     break;
                 }
             } else if node.match_child(&chr).is_some() {
-                //loop until our parse is not a prefix of any symbol in the symbol trie
+                //consume until our parse is not a prefix of any symbol in the symbol trie
                 node = node.match_child(&chr).unwrap();
                 while let Some(child_node) = self.peek(0).and_then(|v| node.match_child(&v)) {
                     node = child_node;

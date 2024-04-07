@@ -23,17 +23,15 @@ impl<'a> std::convert::From<&[(&str, Token<'a>)]> for Trie<char, Option<Token<'a
         for (string, token) in value {
             let mut trie = &mut root;
 
-            //loop through each character in string
             for (index, chr) in string.chars().enumerate() {
+                let commit = index == string.len() - 1;
+                //we avoid if let Some(child) = trie.children.get_mut() because of a bug in the borrow checker
                 trie = if trie.children.contains_key(&chr) {
-                    //if the character already has a node at this location, go into it
                     let child = trie.children.get_mut(&chr).unwrap();
-                    if index == string.len() - 1 { child.value = Some(*token); }
+                    if commit { child.value = Some(*token); }
                     child
-
                 } else {
-                    //otherwise, insert the new node, and start working with it
-                    trie.children.insert(chr, Trie::new(if index == string.len()-1 { Some(*token)} else { None }));
+                    trie.children.insert(chr, Trie::new(if commit { Some(*token)} else { None }));
                     trie.children.get_mut(&chr).unwrap()
                 };
             }

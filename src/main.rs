@@ -23,11 +23,10 @@ fn main() {
 
     let st = Instant::now();
     let tokens = lexer.execute();
-    println!("parsed in {:?}", st.elapsed().as_secs_f64());
-
-    println!("{:?}", tokens);
-
     let mut parser = Parser::new(tokens);
-    println!("{:#?}", parser.program().unwrap());
+    let ast = parser.program().unwrap();
+
+    println!("parsed in {:?}", st.elapsed().as_secs_f64());
+    println!("{:#?}", ast);
 
 }
