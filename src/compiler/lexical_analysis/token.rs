@@ -1,7 +1,7 @@
 use std::collections::HashMap;
+use crate::util::trie::Trie;
 
-#[derive(Debug, Eq, PartialEq)]
-
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum Token<'a> {
     //
     Identifier(&'a str), // variable names, function names, etc.
@@ -15,6 +15,9 @@ pub enum Token<'a> {
 
     //Symbols
     Comma,
+    DoubleEq,
+    Eq,
+    DoubleBar
 }
 
 impl<'a> Token<'a> {
@@ -24,6 +27,24 @@ impl<'a> Token<'a> {
             "false" => Some(Token::False),
             "local" => Some(Token::Local),
             _ => None,
+        }
+    }
+
+    pub fn get_symbol_trie() -> Trie<char, Option<Token<'a>>> {
+        (&[("==", Token::DoubleEq), ("=", Token::Eq), ("||", Token::DoubleBar)][..]).into()
+    }
+
+    pub fn unwrap_ident(self) -> Option<&'a str> {
+        match self {
+            Token::Identifier(ident) => Some(ident),
+            _ => None
+        }
+    }
+
+    pub fn unwrap_number(self) -> Option<&'a str> {
+        match self {
+            Token::Number(ident) => Some(ident),
+            _ => None
         }
     }
 }

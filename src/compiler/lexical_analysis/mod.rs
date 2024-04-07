@@ -19,7 +19,8 @@ use std::iter::{Iterator, Peekable};
 use std::str::CharIndices;
 
 //crate
-use crate::utility::peek::{self, Peek};
+use crate::util::peek::{Peek};
+use crate::util::trie::Trie;
 
 pub struct Lexer<'a> {
     //a peekable iterator of char indicies can be used to find and return subslices of the original source code
@@ -59,6 +60,9 @@ impl<'a> Lexer<'a> {
     }
 
     pub fn execute(mut self) -> Vec<Token<'a>> {
+        //
+        let symbol_trie = Token::get_symbol_trie();
+
         // create a vector to store the tokens
         let mut tokens = Vec::new();
 
@@ -66,16 +70,12 @@ impl<'a> Lexer<'a> {
         while let Some(chr) = self.next() {
             self.start = self.cur;
 
+            let mut node = &symbol_trie;
+
             //identifier
             let token = if chr.is_alphabetic() {
                 let identifier = self.consume_while_tok(|c| c.is_alphabetic());
-
-                if let Some(token) = Token::get_keyword(identifier) {
-                    token
-                } else {
-                    Token::Identifier(identifier)
-                }
-                //is it a keyword? nani
+                Token::get_keyword(identifier).unwrap_or(Token::Identifier(identifier))
             } else if chr.is_numeric() {
                 Token::Number(self.consume_while_tok(|c| c.is_numeric()))
             } else if chr == '"' || chr == '\'' {
@@ -86,6 +86,18 @@ impl<'a> Lexer<'a> {
                     Token::String(self.consume_buffer())
                 } else {
                     break;
+                }
+            } else if node.match_child(&chr).is_some() {
+                //loop until our parse is not a prefix of any symbol in the symbol trie
+                node = node.match_child(&chr).unwrap();
+                while let Some(child_node) = self.peek(0).and_then(|v| node.match_child(&v)) {
+                    node = child_node;
+                }
+                //if our final parse is not just a prefix, but also a valid symbol, return it
+                if let Some(token) = node.value {
+                    token
+                } else {
+                    continue
                 }
             } else {
                 continue;
